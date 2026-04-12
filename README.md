@@ -106,12 +106,6 @@ curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/insta
 curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/uninstall.sh | bash
 ```
 
-## 目录
-
-- `install.sh`：安装/升级脚本
-- `uninstall.sh`：卸载脚本
-- `systemd/vohive.service`：默认服务模板
-- `docs/`：快速开始、升级、回滚、安全说明
 
 ## 默认安装目录（便携部署）
 
@@ -208,6 +202,7 @@ http://你的服务器IP:7575
 
 - Vodafone DE
 - Telekom DE
+- O2 DE
 
 - T-Mobile US
 - 未标出的不代表不兼容，只是我没有
