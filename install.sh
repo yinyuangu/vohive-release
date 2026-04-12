@@ -73,9 +73,6 @@ resolve_version() {
     err "Cannot resolve latest release tag from GitHub API."
     exit 1
   fi
-  if [[ "${CHANNEL}" == "stable" ]]; then
-    log "--channel stable currently maps to latest release"
-  fi
   printf '%s\n' "${resolved}"
 }
 
@@ -172,6 +169,30 @@ UNIT
   run_root systemctl is-active --quiet vohive
 }
 
+print_access_info() {
+  local port="7575"
+  local links="http://127.0.0.1:${port}"
+  local ip
+  local ips=""
+
+  if command -v hostname >/dev/null 2>&1; then
+    ips="$(hostname -I 2>/dev/null || true)"
+  fi
+
+  for ip in ${ips}; do
+    if [[ "${ip}" == "127."* || "${ip}" == "::1" ]]; then
+      continue
+    fi
+    links="${links} http://${ip}:${port}"
+  done
+
+  log "Minimal config ready: ${CONFIG_DIR}/config.yaml"
+  log "Default Web credentials: admin / admin"
+  for ip in ${links}; do
+    log "One-click URL: ${ip}"
+  done
+}
+
 main() {
   parse_args "$@"
 
@@ -244,6 +265,14 @@ main() {
 
   rollback_needed=0
   log "Install complete: ${BIN_PATH} (${resolved_version})"
+  if [[ "${NO_SYSTEMD}" == "0" ]]; then
+    log "Service status: running (systemd)"
+    print_access_info
+  else
+    log "Systemd installation skipped (--no-systemd)"
+    log "Run manually: ${BIN_PATH} -c ${CONFIG_DIR}/config.yaml"
+    print_access_info
+  fi
 }
 
 main "$@"
