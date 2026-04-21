@@ -197,7 +197,6 @@ main() {
   parse_args "$@"
 
   need_cmd curl
-  need_cmd tar
   need_cmd uname
 
   local os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -211,25 +210,24 @@ main() {
   local resolved_version
   resolved_version="$(resolve_version "${VERSION}")"
 
-  local asset="vohive_${resolved_version}_linux_${arch}.tar.gz"
+  local asset="vohive_${resolved_version}_linux_${arch}"
   local base="https://github.com/${REPO}/releases/download/${resolved_version}"
 
   local tmp
   tmp="$(mktemp -d)"
   trap "rm -rf '${tmp}'" EXIT
 
-  local tarball="${tmp}/${asset}"
+  local downloaded="${tmp}/${asset}"
 
   log "已解析版本: ${resolved_version}"
-  log "正在下载二进制: ${base}"
+  log "正在下载二进制: ${base}/${asset}"
 
-  curl -fsSL "${base}/${asset}" -o "${tarball}"
+  curl -fsSL "${base}/${asset}" -o "${downloaded}"
+  chmod +x "${downloaded}"
 
-  tar -xzf "${tarball}" -C "${tmp}"
-  local extracted
-  extracted="$(find "${tmp}" -maxdepth 1 -type f -name "vohive_${resolved_version}_linux_${arch}" | head -n1)"
-  if [[ -z "${extracted}" ]]; then
-    err "压缩包中未找到可执行文件"
+  local extracted="${downloaded}"
+  if [[ ! -f "${extracted}" ]]; then
+    err "下载的二进制文件不存在"
     exit 1
   fi
 
