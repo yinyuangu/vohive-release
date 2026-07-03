@@ -2,6 +2,59 @@
 
 VoHive 的 Linux 安装与发布仓库，提供一键安装脚本、卸载脚本、systemd/OpenWrt 服务配置，以及不同 CPU 架构的预编译二进制文件。
 
+## 第一步：macOS 上修改模块 VID/PID（可选）
+
+如果你使用的是大疆 4G 模块、EG25-G 或 Baiwang QDC507 这类模块，可能会以大疆私有 VID/PID 枚举，例如 `2ca3:4006`。在安装 VoHive 前，可以先在 macOS 上把模块改成常见的 Quectel VID/PID，例如 `2c7c:0125`，方便后续在 Linux/OpenWrt/VoHive 环境中识别和管理。
+
+该步骤参考 [hey1874/eg25g-toolset](https://github.com/hey1874/eg25g-toolset) 的 macOS 免 Linux 修改方式，核心原理是通过 `libusb + pyusb` 直接向模块 USB bulk endpoint 发送 AT 命令。
+
+### 1. 安装工具
+
+```bash
+brew install libusb
+git clone https://github.com/hey1874/eg25g-toolset.git
+cd eg25g-toolset
+python3 -m venv .venv
+source .venv/bin/activate
+pip install pyusb flask
+```
+
+### 2. 确认 macOS 已识别模块
+
+```bash
+system_profiler SPUSBDataType | egrep -i "2ca3|2c7c|quectel|eg25|ec25|dji|baiwang"
+```
+
+如果已经是 `0x2c7c / 0x0125`，通常可以跳过修改 VID/PID。
+
+### 3. 测试 AT 命令
+
+```bash
+python3 eg25g.py info
+python3 eg25g.py at "AT"
+```
+
+正常情况下会看到 `OK`。
+
+### 4. 修改为 Quectel VID/PID 并重启模块
+
+```bash
+python3 eg25g.py at 'AT+QCFG="usbcfg",0x2C7C,0x0125,1,1,1,1,1,0,0'
+python3 eg25g.py at 'AT+CFUN=1,1'
+```
+
+执行后模块会重新枚举，USB 会短暂断开。等待 20-60 秒后重新检查：
+
+```bash
+system_profiler SPUSBDataType | egrep -i "2c7c|quectel|eg25|ec25"
+```
+
+如果需要切到 Linux/VoHive 更常用的 QMI 模式，可以继续执行：
+
+```bash
+python3 eg25g.py mode qmi
+```
+
 ## 支持架构
 
 安装脚本会自动识别当前系统架构，并获取对应二进制文件：
