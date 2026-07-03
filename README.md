@@ -73,6 +73,46 @@ sudo ./install.sh
 sudo VOHIVE_BINARY_DIR=/path/to/binaries ./install.sh
 ```
 
+## Docker 部署
+
+本仓库内置 `Dockerfile` 和 `docker-compose.yml`，会直接使用仓库中的 Linux 二进制构建镜像，不依赖外部 `iniwex/vohive:latest` 镜像。
+
+构建本机架构镜像：
+
+```bash
+docker build -t yinyuangu/vohive:latest .
+```
+
+启动 Docker Compose：
+
+```bash
+mkdir -p config data logs
+docker compose up -d --build
+```
+
+Compose 默认配置：
+
+- 镜像名：`yinyuangu/vohive:latest`
+- 容器名：`vohive`
+- 网络模式：`host`
+- 运行权限：`privileged`
+- 配置目录：`./config:/app/config`
+- 数据目录：`./data:/app/data`
+- 日志目录：`./logs:/app/logs`
+- 设备透传：`/dev:/dev`
+
+首次启动时，如果 `config/config.yaml` 不存在，容器入口脚本会自动生成默认配置。
+
+多架构构建示例：
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64,linux/arm/v7 \
+  -t yinyuangu/vohive:latest .
+```
+
+更多说明见 [Docker 部署](docs/docker.md)。
+
 ## 服务管理
 
 systemd：
@@ -143,5 +183,6 @@ curl -fsSL https://raw.githubusercontent.com/yinyuangu/vohive-release/master/uni
 ## 相关文档
 
 - [快速开始](docs/quickstart.md)
+- [Docker 部署](docs/docker.md)
 - [升级说明](docs/upgrade.md)
 - [回滚说明](docs/rollback.md)

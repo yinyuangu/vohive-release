@@ -1,0 +1,10 @@
+.git
+.gitignore
+.codegraph
+docs
+tests
+outputs
+work
+*.md
+!README.md
+
