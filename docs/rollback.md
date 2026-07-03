@@ -3,11 +3,11 @@
 1. 直接安装旧版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash -s -- --version v1.5.2
+curl -fsSL https://raw.githubusercontent.com/yinyuangu/vohive-release/master/install.sh | bash -s -- --version v1.5.5-10-gf9eb85d
 ```
 
 ```sh
-wget -O - https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | sh -s -- --version v1.5.2
+wget -O - https://raw.githubusercontent.com/yinyuangu/vohive-release/master/install.sh | sh -s -- --version v1.5.5-10-gf9eb85d
 ```
 
 2. 若升级失败且 `.bak` 存在，可手动恢复：

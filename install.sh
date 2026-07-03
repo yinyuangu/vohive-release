@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
 
-REPO="${VOHIVE_RELEASE_REPO:-iniwex5/vohive-release}"
+REPO="${VOHIVE_RELEASE_REPO:-yinyuangu/vohive-release}"
+BRANCH="${VOHIVE_RELEASE_BRANCH:-master}"
 CHANNEL="${VOHIVE_RELEASE_CHANNEL:-stable}"
+DEFAULT_VERSION="${VOHIVE_RELEASE_VERSION:-v1.5.5-10-gf9eb85d}"
 VERSION=""
 NO_SYSTEMD=0
 DRY_RUN=0
@@ -24,6 +26,7 @@ SYSTEMD_RUN_DIR="${VOHIVE_SYSTEMD_RUN_DIR:-/run/systemd/system}"
 DOWNLOAD_CMD=""
 TMP_DIR=""
 ACTIVE_PLATFORM="none"
+SCRIPT_DIR=""
 
 log() { printf '[vohive-install] %s\n' "$*"; }
 err() { printf '[vohive-install] 错误: %s\n' "$*" >&2; }
@@ -90,13 +93,6 @@ download_to() {
   fi
 }
 
-fetch_text() {
-  url="$1"
-  tmp_file="${TMP_DIR}/fetch.txt"
-  download_to "$url" "$tmp_file"
-  cat "$tmp_file"
-}
-
 resolve_version() {
   requested="$1"
 
@@ -106,19 +102,56 @@ resolve_version() {
 
   case "${requested}" in
     latest|stable)
-      api_url="https://api.github.com/repos/${REPO}/releases/latest"
-      latest_json="$(fetch_text "${api_url}")"
-      resolved="$(printf '%s\n' "${latest_json}" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-      if [ -z "${resolved}" ]; then
-        err "无法从 GitHub API 获取最新 Release 版本号。"
-        exit 1
-      fi
-      printf '%s\n' "${resolved}"
+      printf '%s\n' "${DEFAULT_VERSION}"
       ;;
     *)
       printf '%s\n' "${requested}"
       ;;
   esac
+}
+
+detect_script_dir() {
+  case "$0" in
+    */*)
+      script_path="$0"
+      ;;
+    *)
+      script_path="$(command -v "$0" 2>/dev/null || true)"
+      ;;
+  esac
+
+  if [ -n "${script_path}" ] && [ -f "${script_path}" ]; then
+    script_dir="$(dirname "${script_path}")"
+    CDPATH= cd "${script_dir}" && pwd
+  else
+    printf '\n'
+  fi
+}
+
+prepare_binary() {
+  asset="$1"
+  dest="$2"
+  local_asset=""
+
+  if [ -n "${VOHIVE_BINARY_DIR:-}" ]; then
+    local_asset="${VOHIVE_BINARY_DIR}/${asset}"
+  elif [ -n "${SCRIPT_DIR}" ]; then
+    local_asset="${SCRIPT_DIR}/${asset}"
+  fi
+
+  if [ -n "${local_asset}" ] && [ -f "${local_asset}" ]; then
+    log "使用本地二进制: ${local_asset}"
+    cp "${local_asset}" "${dest}"
+    chmod +x "${dest}"
+    return 0
+  fi
+
+  need_download_cmd
+  base="${VOHIVE_BINARY_BASE_URL:-https://raw.githubusercontent.com/${REPO}/${BRANCH}}"
+  url="${base}/${asset}"
+  log "正在下载二进制: ${url}"
+  download_to "${url}" "${dest}"
+  chmod +x "${dest}"
 }
 
 parse_args() {
@@ -308,7 +341,6 @@ main() {
 
   need_cmd uname
   need_cmd mktemp
-  need_download_cmd
 
   os="$(uname -s | tr '[:upper:]' '[:lower:]')"
   if [ "${os}" != "linux" ]; then
@@ -318,22 +350,18 @@ main() {
 
   TMP_DIR="$(mktemp -d)"
   trap 'rm -rf "${TMP_DIR}"' EXIT INT TERM
+  SCRIPT_DIR="$(detect_script_dir)"
 
   arch="$(detect_arch)"
   resolved_version="$(resolve_version "${VERSION}")"
   asset="vohive_${resolved_version}_linux_${arch}"
-  base="https://github.com/${REPO}/releases/download/${resolved_version}"
-  downloaded="${TMP_DIR}/${asset}"
-  extracted="${downloaded}"
+  extracted="${TMP_DIR}/${asset}"
 
   log "已解析版本: ${resolved_version}"
-  log "正在下载二进制: ${base}/${asset}"
-
-  download_to "${base}/${asset}" "${downloaded}"
-  chmod +x "${downloaded}"
+  prepare_binary "${asset}" "${extracted}"
 
   if [ ! -f "${extracted}" ]; then
-    err "下载的二进制文件不存在"
+    err "二进制文件不存在: ${asset}"
     exit 1
   fi
 

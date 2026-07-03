@@ -55,14 +55,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 case "$last" in
-  *"/releases/latest")
-    if [ -n "$out" ]; then
-      printf '{"tag_name":"v9.9.9"}\n' >"$out"
-    else
-      printf '{"tag_name":"v9.9.9"}\n'
-    fi
-    ;;
-  *"vohive_v9.9.9_linux_"*)
+  *"vohive_"*"_linux_"*)
     printf '#!/bin/sh\nexit 0\n' >"$out"
     ;;
   *)
@@ -89,10 +82,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 case "$url" in
-  *"/releases/latest")
-    printf '{"tag_name":"v9.9.9"}\n' >"$out"
-    ;;
-  *"vohive_v9.9.9_linux_"*)
+  *"vohive_"*"_linux_"*)
     printf '#!/bin/sh\nexit 0\n' >"$out"
     ;;
   *)
@@ -153,6 +143,23 @@ run_install_case() {
     "$shell_name" "$REPO_DIR/install.sh" --dry-run "$@" 2>&1
 }
 
+run_remote_binary_case() {
+  shell_name="$1"
+  case_dir="$TMP_ROOT/remote-$shell_name"
+  fakebin="$case_dir/fakebin"
+  script_dir="$case_dir/script"
+  root_dir="$case_dir/root"
+  mkdir -p "$script_dir" "$root_dir"
+  make_fakebin "$fakebin"
+  cp "$REPO_DIR/install.sh" "$script_dir/install.sh"
+
+  env \
+    PATH="$fakebin:$PATH" \
+    VOHIVE_INSTALL_ROOT="$root_dir/opt/vohive" \
+    VOHIVE_BINARY_BASE_URL="http://example.invalid/vohive-release" \
+    "$shell_name" "$script_dir/install.sh" --dry-run --no-systemd 2>&1
+}
+
 run_uninstall_case() {
   shell_name="$1"
   platform="$2"
@@ -208,6 +215,9 @@ assert_contains "$install_openwrt_output" "init.d/vohive"
 
 install_bash_output="$(run_install_case bash none --no-systemd)"
 assert_contains "$install_bash_output" "手动启动命令"
+
+remote_binary_output="$(run_remote_binary_case sh)"
+assert_contains "$remote_binary_output" "正在下载二进制: http://example.invalid/vohive-release/vohive_v1.5.5-10-gf9eb85d_linux_amd64"
 
 uninstall_systemd_output="$(run_uninstall_case sh systemd --purge)"
 assert_contains "$uninstall_systemd_output" "systemctl disable vohive"

@@ -3,11 +3,11 @@
 1. 安装最新版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yinyuangu/vohive-release/master/install.sh | bash
 ```
 
 ```sh
-wget -O - https://raw.githubusercontent.com/iniwex5/vohive-release/master/install.sh | sh
+wget -O - https://raw.githubusercontent.com/yinyuangu/vohive-release/master/install.sh | sh
 ```
 
 2. 查看服务状态：
